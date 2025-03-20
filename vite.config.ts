@@ -15,6 +15,7 @@ export default defineConfig({
   base: process.env.NODE_ENV === "development" ? "/" : process.env.VITE_BASE_PATH || "/",
   optimizeDeps: {
     entries: ["src/main.tsx", "src/tempobook/**/*"],
+    include: ['react-resizable-panels']  // Pre-bundle this dependency
   },
   plugins: [
     react({
@@ -31,5 +32,18 @@ export default defineConfig({
   server: {
     // @ts-ignore
     allowedHosts: true,
+    hmr: false,  // Disable HMR for clearer debugging
+    watch: {
+      usePolling: true
+    }
+  },
+  // Define process.env polyfill for the browser
+  define: {
+    'process.env': {
+      NODE_ENV: JSON.stringify(process.env.NODE_ENV),
+      // Add any other environment variables your app needs
+      VITE_BASE_PATH: JSON.stringify(process.env.VITE_BASE_PATH || "/"),
+      TEMPO: JSON.stringify(process.env.TEMPO),
+    }
   }
 });

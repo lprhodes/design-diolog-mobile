@@ -1,11 +1,11 @@
 import fs from "fs-extra";
 import path from "path";
-import { Comment, MarkdownFile } from "../components/Layout";
+import { Comment, MarkdownFile, FileVersion } from "../types";
 
 // Server-side storage paths
 const DATA_DIR = path.join(process.cwd(), "data");
 const FILES_PATH = path.join(DATA_DIR, "files.json");
-const COMMENTS_DIR = path.join(DATA_DIR, "comments");
+export const COMMENTS_DIR = path.join(DATA_DIR, "comments");
 const VERSIONS_DIR = path.join(DATA_DIR, "versions");
 
 // Ensure directories exist
@@ -64,15 +64,6 @@ export const saveComments = async (
   }
 };
 
-// Interface for file version
-interface FileVersion {
-  id: string;
-  fileId: string;
-  content: string;
-  version: number;
-  createdAt: Date;
-}
-
 // Load version history for a specific file
 export const loadFileVersions = async (
   fileId: string,
@@ -89,7 +80,8 @@ export const loadFileVersions = async (
     for (const versionFile of versionFiles) {
       const versionPath = path.join(fileVersionsDir, versionFile);
       const data = await fs.readFile(versionPath, "utf8");
-      versions.push(JSON.parse(data));
+      const version = JSON.parse(data);
+      versions.push(version);
     }
 
     // Sort by version number in descending order (newest first)

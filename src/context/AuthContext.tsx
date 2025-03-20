@@ -10,7 +10,7 @@ import {
   GoogleLogin,
   CredentialResponse,
 } from "@react-oauth/google";
-import jwtDecode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 interface User {
   id: string;

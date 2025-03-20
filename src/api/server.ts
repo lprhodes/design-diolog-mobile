@@ -6,6 +6,9 @@ import {
   saveFiles,
   loadComments,
   saveComments,
+  loadFileVersions,
+  saveFileVersion,
+  COMMENTS_DIR,
 } from "../utils/serverStorage";
 import { Comment, MarkdownFile } from "../components/Layout";
 
@@ -135,7 +138,16 @@ app.delete("/api/comments/:fileId/:commentId", async (req, res) => {
     const updatedComments = comments.filter(comment => comment.id !== commentId);
     
     if (updatedComments.length === comments.length) {
-
+      return res.status(404).json({ error: "Comment not found" });
+    }
+    
+    await saveComments(fileId, updatedComments);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    res.status(500).json({ error: "Failed to delete comment" });
+  }
+});
 
 // API endpoint to add a reply to a comment
 app.post("/api/comments/:fileId/reply/:commentId", async (req, res) => {
@@ -172,6 +184,53 @@ app.post("/api/comments/:fileId/reply/:commentId", async (req, res) => {
   } catch (error) {
     console.error("Error adding reply:", error);
     res.status(500).json({ error: "Failed to add reply" });
+  }
+});
+
+// API endpoint to delete a reply
+app.delete("/api/comments/:fileId/reply/:commentId/:replyId", async (req, res) => {
+  try {
+    const { fileId, commentId, replyId } = req.params;
+    const comments = await loadComments(fileId);
+    
+    const updatedComments = comments.map(comment => {
+      if (comment.id === commentId) {
+        return {
+          ...comment,
+          replies: (comment.replies || []).filter(reply => reply.id !== replyId)
+        };
+      }
+      return comment;
+    });
+    
+    await saveComments(fileId, updatedComments);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting reply:", error);
+    res.status(500).json({ error: "Failed to delete reply" });
+  }
+});
+
+// API endpoint to delete an inline comment
+app.delete("/api/inline-comments/:fileId/:commentId", async (req, res) => {
+  try {
+    const { fileId, commentId } = req.params;
+    const commentsPath = path.join(COMMENTS_DIR, `${fileId}_inline.json`);
+    
+    if (fs.existsSync(commentsPath)) {
+      const data = await fs.readFile(commentsPath, "utf8");
+      const comments = JSON.parse(data);
+      
+      const updatedComments = comments.filter(comment => comment.id !== commentId);
+      await fs.writeFile(commentsPath, JSON.stringify(updatedComments, null, 2));
+      
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: "Comments file not found" });
+    }
+  } catch (error) {
+    console.error("Error deleting inline comment:", error);
+    res.status(500).json({ error: "Failed to delete inline comment" });
   }
 });
 
@@ -257,7 +316,21 @@ app.put("/api/files/:fileId/content", async (req, res) => {
   }
 });
 
+// API endpoint to save files
+app.post("/api/files", async (req, res) => {
+  try {
+    const files: MarkdownFile[] = req.body;
+    await saveFiles(files);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error saving files:", error);
+    res.status(500).json({ error: "Failed to save files" });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+export default app;
